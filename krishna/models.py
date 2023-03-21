@@ -10,7 +10,8 @@ class Hotels(models.Model):
     country = models.CharField(max_length=50,default="Canada")
     def __str__(self):
         return self.name
-
+    
+User.add_to_class('green_points', models.IntegerField(default=0))
 
 class Rooms(models.Model):
     ROOM_STATUS = ( 
@@ -45,6 +46,13 @@ class Reservation(models.Model):
     booking_id = models.CharField(max_length=100,default="null")
     def __str__(self):
         return self.guest.username
+
+class Review(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.IntegerField()
+    comment = models.TextField(blank=True)
+
+    
 
 class Contact(models.Model):
     name = models.CharField(max_length=255)

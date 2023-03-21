@@ -1,13 +1,34 @@
-from django.shortcuts import render ,redirect
+from django.shortcuts import render ,redirect,get_object_or_404
 from django.urls import reverse
 from django.http import HttpResponse , HttpResponseRedirect
-from .models import Hotels,Rooms,Reservation,Contact
+from .models import Hotels,Rooms,Reservation,Contact,Review
 from django.contrib import messages
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from .forms import ReviewForm
 import datetime
 # Create your views here.
+
+def reviewsPage(request):
+    reviews = Review.objects.all()
+    hotels = Hotels.objects.all()
+    context = {'reviews': reviews, 'hotels': hotels}
+
+    if request.user.is_authenticated:
+        if request.method == 'POST':
+            form = ReviewForm(request.POST)
+            if form.is_valid():
+                review = form.save(commit=False)
+                review.user = request.user
+                review.save()
+                return redirect('reviewsPage')
+        else:
+            form = ReviewForm()
+
+        context['form'] = form
+
+    return HttpResponse(render(request, 'reviews.html', context))
 
 #homepage
 def homepage(request):
@@ -258,6 +279,44 @@ def book_room_page(request):
     room = Rooms.objects.all().get(id=int(request.GET['roomid']))
     return HttpResponse(render(request,'user/bookroom.html',{'room':room}))
 
+@login_required(login_url='/user')
+def process_payment(request):
+    if request.method == 'POST':
+        card_number = request.POST['card_number']
+        expiration_date = request.POST['expiration_date']
+        cvv = request.POST['cvv']
+        green_stay = request.POST.get('green_stay')
+        redeem_points = request.POST.get('redeem_points')
+        if green_stay:
+            # Add 10 green points to the user's account
+            request.user.green_points += 10
+            request.user.save()
+        
+        if redeem_points:
+            if request.user.green_points>0:
+                request.user.green_points -= 10
+                request.user.save()
+        # Perform payment processing logic here
+        if len(card_number)!=16 or len(cvv)!=3:
+            reservation = Reservation.objects.latest('id')
+            reservation.delete()
+            messages.warning(request, 'Payment unsuccessful')
+            return redirect('homepage')
+        else:
+            messages.success(request, 'Payment successful')
+            return redirect('homepage')
+        
+    else:
+        messages.warning(request, 'Invalid request')
+        return redirect('homepage')
+
+@login_required(login_url='/user')
+def payment(request,):
+    reservation = Reservation.objects.latest('id')
+    room = reservation.room
+    points=request.user.green_points
+    return HttpResponse(render(request,'payment.html',{'room':room,'points':points}))
+
 #For booking the room
 @login_required(login_url='/user')
 def book_room(request):
@@ -294,13 +353,8 @@ def book_room(request):
         reservation.check_out = request.POST['check_out']
 
         reservation.save()
-
-        messages.success(request,"Congratulations! Booking Successfull")
-
-        return redirect("homepage")
-    else:
-        return HttpResponse('Access Denied')
-
+        return redirect('/user/payment/')
+        
 def handler404(request):
     return render(request, '404.html', status=404)
 
