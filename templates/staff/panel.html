@@ -204,9 +204,9 @@
 
 <Button class="btn-group btn-primary" data-toggle="modal" data-target="#newroom">Add New Room</Button>
 
-
+{% if user.is_authenticated and user.is_superuser %}
 <Button class="btn-group btn-primary " data-toggle="modal" data-target="#newlocation">Add New Location</Button>
-
+{% endif %}
 <table class="table table-striped  ">
     <thead>
         <th>Room Number</th>

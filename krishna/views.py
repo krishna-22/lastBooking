@@ -3,6 +3,14 @@ from django.urls import reverse
 from django.http import HttpResponse , HttpResponseRedirect
 from .models import Hotels,Rooms,Reservation,Contact,Review
 from django.contrib import messages
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -119,6 +127,11 @@ def user_sign_up(request):
         return redirect("userloginpage")
     return HttpResponse('Access Denied')
 #staff sign up
+def deleteReservation(request,pk):
+    reservation = get_object_or_404(Reservation, id=pk)
+    reservation.delete()
+    messages.success(request,'Your Booking is Cancelled')
+    return redirect('http://127.0.0.1:8000/')
 def staff_sign_up(request):
     if request.method =="POST":
         user_name = request.POST['username']
@@ -424,4 +437,52 @@ def contact(request):
 
     return render(request, 'contact.html')
 
+def forgot_password(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            messages.error(request, 'Invalid email address.')
+            return redirect('forgot_password')
         
+        # Generate a token and send a password reset email
+        token_generator = default_token_generator
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = token_generator.make_token(user)
+        reset_url = request.build_absolute_uri(reverse('reset_password', kwargs={'uidb64': uid, 'token': token}))
+        subject = 'Password reset for your account'
+        message = render_to_string('forgot_password_email.html', {'reset_url': reset_url})
+
+        # Create a plaintext version of the email for clients that don't support HTML
+        text_message = f"Click the link below to reset your password: {reset_url}"
+
+        # Use EmailMultiAlternatives to send both HTML and plaintext versions of the email
+        email_message = EmailMultiAlternatives(subject, text_message, settings.DEFAULT_FROM_EMAIL, [email])
+        email_message.attach_alternative(message, "text/html")
+        email_message.send()
+
+        messages.success(request, 'A password reset link has been sent to your email.')
+        return redirect('http://127.0.0.1:8000/user/login')
+        
+    return render(request, 'forgot_password.html')
+
+def reset_password(request, uidb64, token):
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+        
+    if user is not None and default_token_generator.check_token(user, token):
+        if request.method == 'POST':
+            password = request.POST.get('password')
+            user.set_password(password)
+            user.save()
+            messages.success(request, 'Password has been reset successfully. You can now log in with your new password.')
+            return redirect('http://127.0.0.1:8000/user/login')
+        else:
+            return render(request, 'reset_password.html')
+    else:
+        messages.error(request, 'The password reset link is invalid or has expired. Please request a new password reset.')
+        return render(request, 'reset_password.html')

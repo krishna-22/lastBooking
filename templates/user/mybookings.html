@@ -20,6 +20,7 @@
         <td>{{each_booking.check_in}}</td>
         <td>{{each_booking.check_out}}</td>
         <td>{{each_booking.room.price}}</td>
+        <td><a href="{% url 'deleteReservation' each_booking.id %}" class="btn btn-danger">Delete</a></td>
     </tr>
     {% endfor %}
 

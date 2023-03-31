@@ -1,25 +1,12 @@
-"""hotel URL Configuration
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/3.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path
 import krishna.views as views
 urlpatterns = [
     path('', views.homepage,name="homepage"),
     path('home', views.homepage,name="homepage"),
-    path('about', views.aboutpage,name="aboutpage"),
+    path('deleteReservation/<int:pk>/', views.deleteReservation,name="deleteReservation"),
+    path('about/', views.aboutpage,name="aboutpage"),
      path('reviewsPage', views.reviewsPage,name="reviewsPage"),
     path('contact', views.contactpage,name="contactpage"),
     path('contact/handle', views.handleContact,name="handleContact"),
@@ -43,7 +30,8 @@ urlpatterns = [
     path('staff/panel/add-new-room', views.add_new_room,name="addroom"),
     path('staff/panel/edit-room/edit', views.edit_room),
     path('staff/panel/view-room', views.view_room),
-
+     path('forgot-password/', views.forgot_password, name='forgot_password'),
+    path('reset-password/<uidb64>/<token>/', views.reset_password, name='reset_password'),
     path('admin/', admin.site.urls),
     
 
